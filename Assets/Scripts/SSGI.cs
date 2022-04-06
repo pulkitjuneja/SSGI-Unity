@@ -39,6 +39,7 @@ public class SSGI : MonoBehaviour
 
     RenderTexture temporalReflectionBuffer;
     RenderTexture prevFrameBuffer;
+    RenderTexture prevFrameDiffuseBuffer;
     RenderTexture currentFrameBuffer;
     Material SSGIMaterial;
     Vector2 jitter;
@@ -73,6 +74,12 @@ public class SSGI : MonoBehaviour
             prevFrameBuffer.Release();
             prevFrameBuffer = null;
         }
+
+        if (prevFrameDiffuseBuffer != null)
+        {
+            prevFrameDiffuseBuffer.Release();
+            prevFrameDiffuseBuffer = null;
+        }
     }
 
     private void ReleaseTempBuffer(RenderTexture rt) {
@@ -86,6 +93,12 @@ public class SSGI : MonoBehaviour
 
         if (temporalReflectionBuffer == null || !temporalReflectionBuffer.IsCreated()) {
             temporalReflectionBuffer = CreateRenderTexture(width, height, 0, RenderTextureFormat.DefaultHDR, false, false, FilterMode.Bilinear);
+
+        }
+
+        if (prevFrameDiffuseBuffer == null || !prevFrameDiffuseBuffer.IsCreated())
+        {
+            prevFrameDiffuseBuffer = CreateRenderTexture(width, height, 0, RenderTextureFormat.ARGBFloat, false, false, FilterMode.Bilinear);
 
         }
 
@@ -187,13 +200,18 @@ public class SSGI : MonoBehaviour
         jitter = GenerateRandomOffset();
     }
 
-    [ImageEffectOpaque]
-    private void OnRenderImage(RenderTexture source, RenderTexture destination) {
+    private void RenderDiffuse(RenderTexture source, RenderTexture destination)
+    {
+
+    }
+
+    private void RenderSpecular(RenderTexture source, RenderTexture destination)
+    {
         int width = m_camera.pixelWidth;
         int height = m_camera.pixelHeight;
         UpdateRenderTargets(width, height);
         UpdateUniforms();
-        
+
         int rayWidth = width / (int)reflectionResoluttion;
         int rayHeight = height / (int)reflectionResoluttion;
 
@@ -208,7 +226,7 @@ public class SSGI : MonoBehaviour
 
         RenderTexture rayCast = CreateTempBuffer(rayWidth, rayHeight, 0, RenderTextureFormat.ARGBHalf);
         RenderTexture rayCastMask = CreateTempBuffer(rayWidth, rayHeight, 0, RenderTextureFormat.RHalf);
-        rayCast.filterMode = FilterMode.Point; 
+        rayCast.filterMode = FilterMode.Point;
 
         SSGIMaterial.SetTexture("_RayCast", rayCast);
         SSGIMaterial.SetTexture("_RayCastMask", rayCastMask);
@@ -225,7 +243,7 @@ public class SSGI : MonoBehaviour
 
         RenderTexture reflectionBuffer = CreateTempBuffer(resolveWidth, resolveHeight, 0, RenderTextureFormat.DefaultHDR);
         // TODO Implement Mip Map blur before resolve pass
-        Graphics.Blit(currentFrameBuffer, reflectionBuffer, SSGIMaterial, 2); 
+        Graphics.Blit(currentFrameBuffer, reflectionBuffer, SSGIMaterial, 2);
         SSGIMaterial.SetTexture("_ReflectionBuffer", reflectionBuffer);
 
         ReleaseTempBuffer(rayCast);
@@ -245,11 +263,48 @@ public class SSGI : MonoBehaviour
         }
 
         Graphics.Blit(source, prevFrameBuffer, SSGIMaterial, 4);
-        Graphics.Blit(prevFrameBuffer, destination);
+        //Graphics.Blit(prevFrameBuffer, destination);
         ReleaseTempBuffer(reflectionBuffer);
+
+        RenderTexture customNormals = CreateTempBuffer(width, height, 0, RenderTextureFormat.ARGBFloat);
+        Graphics.Blit(source, customNormals, SSGIMaterial, 5);
+
+        RenderTexture diffuseIndirectBuffer = CreateTempBuffer(width, height, 0, RenderTextureFormat.ARGBFloat);
+        SSGIMaterial.SetTexture("_SourceColor", source);
+        Graphics.Blit(customNormals, diffuseIndirectBuffer, SSGIMaterial, 6);
+
+        RenderTexture tempDiffuseBuffer = CreateTempBuffer(width, height, 0, RenderTextureFormat.ARGBFloat);
+        Graphics.Blit(diffuseIndirectBuffer, tempDiffuseBuffer);
+        if (useTemporal && Application.isPlaying)
+        {
+            SSGIMaterial.SetFloat("_TScale", scale);
+            SSGIMaterial.SetFloat("_TResponse", response);
+
+            RenderTexture temporalBuffer0 = CreateTempBuffer(width, height, 0, RenderTextureFormat.ARGBFloat);
+            SSGIMaterial.SetTexture("_PreviousBuffer", prevFrameDiffuseBuffer);
+            Graphics.Blit(diffuseIndirectBuffer, temporalBuffer0, SSGIMaterial, 3); // Temporal pass
+            Graphics.Blit(temporalBuffer0, prevFrameDiffuseBuffer);
+            Graphics.Blit(prevFrameDiffuseBuffer, tempDiffuseBuffer);
+            ReleaseTempBuffer(temporalBuffer0);
+        }
+
+        Graphics.Blit(tempDiffuseBuffer, destination);
+        ReleaseTempBuffer(customNormals);
+        ReleaseTempBuffer(tempDiffuseBuffer);
+        ReleaseTempBuffer(diffuseIndirectBuffer);
+
+
     }
 
-    private void OnDisable() {
+    [ImageEffectOpaque]
+    private void OnRenderImage(RenderTexture source, RenderTexture destination) 
+    {
+        RenderSpecular(source, destination);
+        //RenderDiffuse(source, destination);
+    }
+
+    private void OnDisable() 
+    {
         ReleaseRenderTargets();
     }
 }
