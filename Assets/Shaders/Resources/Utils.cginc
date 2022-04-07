@@ -4,6 +4,7 @@
 
 uniform sampler2D	_MainTex,
 					_ReflectionBuffer,
+					_DiffuseReflectionBuffer,
 					_PreviousBuffer,
 					_RayCast,
 					_RayCastMask;

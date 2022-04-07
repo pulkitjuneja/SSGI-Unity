@@ -262,9 +262,7 @@ public class SSGI : MonoBehaviour
             ReleaseTempBuffer(temporalBuffer0);
         }
 
-        Graphics.Blit(source, prevFrameBuffer, SSGIMaterial, 4);
-        //Graphics.Blit(prevFrameBuffer, destination);
-        ReleaseTempBuffer(reflectionBuffer);
+
 
         RenderTexture customNormals = CreateTempBuffer(width, height, 0, RenderTextureFormat.ARGBFloat);
         Graphics.Blit(source, customNormals, SSGIMaterial, 5);
@@ -288,10 +286,15 @@ public class SSGI : MonoBehaviour
             ReleaseTempBuffer(temporalBuffer0);
         }
 
-        Graphics.Blit(tempDiffuseBuffer, destination);
+        SSGIMaterial.SetTexture("_DiffuseReflectionBuffer", tempDiffuseBuffer);
+        Graphics.Blit(source, prevFrameBuffer, SSGIMaterial, 4);
+        Graphics.Blit(prevFrameBuffer, destination);
         ReleaseTempBuffer(customNormals);
         ReleaseTempBuffer(tempDiffuseBuffer);
         ReleaseTempBuffer(diffuseIndirectBuffer);
+
+        //Graphics.Blit(prevFrameBuffer, destination);
+        ReleaseTempBuffer(reflectionBuffer);
 
 
     }
