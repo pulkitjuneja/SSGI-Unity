@@ -37,6 +37,7 @@ uniform float		_TMaxResponse;
 uniform float		_TResponse;
 uniform int			_NumSteps;
 uniform int			_RayReuse;
+uniform int			_FrameCount;
 
 uniform float4x4	_ProjectionMatrix;
 uniform float4x4	_InverseProjectionMatrix;
