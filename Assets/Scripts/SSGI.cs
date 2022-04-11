@@ -20,6 +20,7 @@ public class SSGI : MonoBehaviour
     Texture noise;
     public bool rayReuse = true;
     [Range(0.0f, 1.0f)] public float edgeFade = 0.125f;
+    public bool useIndirect = true;
 
     [Header("temporal")]
     public bool useTemporal = true;
@@ -29,6 +30,7 @@ public class SSGI : MonoBehaviour
     [Header("blur")]
     [Range(0.0f, 1.0f)] public float blurSize = 0.1f;
     [Range(0.0f, 0.3f)] public float standardDeviation = 0.15f;
+    [Range(0.0f, 200.0f)] public float depthBlurFalloff = 100f;
 
     //Uniforms
     private Camera m_camera;
@@ -132,6 +134,11 @@ public class SSGI : MonoBehaviour
         else if (useTemporal && Application.isPlaying)
             SSGIMaterial.SetInt("_UseTemporal", 1);
 
+        if (!useIndirect)
+            SSGIMaterial.SetInt("_EnableIndirectLighting", 0);
+        else if (useIndirect && Application.isPlaying)
+            SSGIMaterial.SetInt("_EnableIndirectLighting", 1);
+
         SSGIMaterial.SetInt("_FrameCount", frameCount++);
 
         // SSGIMaterial.SetInt("_ReflectionVelocity", 1);
@@ -221,6 +228,7 @@ public class SSGI : MonoBehaviour
 
         gaussianBlur.SetFloat("_StandardDeviation", standardDeviation);
         gaussianBlur.SetFloat("_BlurSize", blurSize);
+        gaussianBlur.SetFloat("_DepthBlurFalloff", depthBlurFalloff);
         //mip 1
         RenderTexture tempTexture = CreateTempBuffer(width / 2, height / 2, 0, RenderTextureFormat.Default);
         //

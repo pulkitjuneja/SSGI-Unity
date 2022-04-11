@@ -39,6 +39,8 @@ uniform int			_NumSteps;
 uniform int			_RayReuse;
 uniform int			_FrameCount;
 
+uniform float       _DepthBlurFalloff;
+
 uniform float4x4	_ProjectionMatrix;
 uniform float4x4	_InverseProjectionMatrix;
 uniform float4x4	_InverseViewProjectionMatrix;
@@ -46,6 +48,7 @@ uniform float4x4	_WorldToCameraMatrix;
 
 //Debug Options
 uniform int			_UseTemporal;
+uniform int         _EnableIndirectLighting;
 uniform int			_MaxMipMap;
 
 float4 GetCubeMap (float2 uv) { return tex2D(_CameraReflectionsTexture, uv); }

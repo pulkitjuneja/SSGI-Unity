@@ -244,7 +244,7 @@
 		float roughness = GetRoughness(specular.a);
 
 		float4 sceneColor = tex2D(_MainTex,  uv);
-		sceneColor.rgb = max(1e-5, sceneColor.rgb - cubemap.rgb);
+		//sceneColor.rgb = max(1e-5, sceneColor.rgb - cubemap.rgb);
 
 		float4 reflection = tex2D(_ReflectionBuffer, uv);
 		float4 diffuseIndirectColor = tex2D(_DiffuseReflectionBuffer, uv);
@@ -267,10 +267,17 @@
 		//reflection.rgb = oneMinusReflectivity*diffuseIndirectColor;
 		//reflection.rgb += sceneColor;
 
-		reflection.rgb = UNITY_BRDF_PBS (diffuse.rgb, specular.rgb, oneMinusReflectivity, 1-roughness, worldNormal, -viewDir, light, ind).rgb;
+		//reflection.rgb = UNITY_BRDF_PBS (diffuse.rgb, specular.rgb, oneMinusReflectivity, 1-roughness, worldNormal, -viewDir, light, ind).rgb;
 		//reflection.rgb *= occlusion;
 		
-		sceneColor.rgb += diffuseIndirectColor.rgb;
+		diffuseIndirectColor.rgb *= diffuse.rgb;
+
+		if (_EnableIndirectLighting)
+		{
+			//diffuseIndirectColor.rgb = EnergyConservationBetweenDiffuseAndSpecular(diffuseIndirectColor.rgb, reflection.rgb, oneMinusReflectivity);
+			sceneColor.rgb += diffuseIndirectColor.rgb;// +reflection.rgb;
+		}
+
 		return sceneColor;// float4(cubemap, 1.0);
 	}
 

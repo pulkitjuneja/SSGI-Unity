@@ -9,6 +9,7 @@ Shader "Effects/GaussianBlur"
 		[PowerSlider(3)]_StandardDeviation("Standard Deviation (Gauss only)", Range(0.00, 0.3)) = 0.15
 	}
 
+
 		SubShader{
 			// markers that specify that we don't need culling 
 			// or reading/writing to the depth buffer
@@ -22,6 +23,8 @@ Shader "Effects/GaussianBlur"
 				CGPROGRAM
 				//include useful shader functions
 				#include "UnityCG.cginc"
+				#include "Utils.cginc"
+				#include "NoiseLib.cginc"
 
 				//define vertex and fragment shader
 				#pragma vertex vert
@@ -31,7 +34,6 @@ Shader "Effects/GaussianBlur"
 				#pragma shader_feature GAUSS
 
 				//texture and transforms of the texture
-				sampler2D _MainTex;
 				float _BlurSize;
 				float _StandardDeviation;
 
@@ -81,12 +83,30 @@ Shader "Effects/GaussianBlur"
 			#else
 				float sum = SAMPLES;
 			#endif
+				float depthCenter;
+			#if UNITY_REVERSED_Z
+				depthCenter = GetDepth(_CameraDepthTexture, i.uv);
+			#else
+				// Adjust z to match NDC for OpenGL
+				depthCenter = lerp(UNITY_NEAR_CLIP_VALUE, 1, GetDepth(_CameraDepthTexture, i.uv));
+			#endif
 				//iterate over blur samples
 				for (float index = 0; index < SAMPLES; index++) {
 					//get the offset of the sample
 					float offset = (index / (SAMPLES - 1) - 0.5) * _BlurSize;
 					//get uv coordinate of sample
 					float2 uv = i.uv + float2(0, offset);
+					float depthKernel;
+				#if UNITY_REVERSED_Z
+					depthKernel = GetDepth(_CameraDepthTexture, uv);
+				#else
+					// Adjust z to match NDC for OpenGL
+					depthKernel = lerp(UNITY_NEAR_CLIP_VALUE, 1, GetDepth(_CameraDepthTexture, uv));
+				#endif
+					//weight calculation depending on distance and depth difference
+					float depthDiff = abs(depthKernel - depthCenter);
+					float r2 = depthDiff * _DepthBlurFalloff;
+					float g = exp(-r2 * r2);
 				#if !GAUSS
 					//simply add the color if we don't have a gaussian blur (box)
 					col += tex2D(_MainTex, uv);
@@ -95,9 +115,9 @@ Shader "Effects/GaussianBlur"
 					float stDevSquared = _StandardDeviation * _StandardDeviation;
 					float gauss = (1 / sqrt(2 * PI * stDevSquared)) * pow(E, -((offset * offset) / (2 * stDevSquared)));
 					//add result to sum
-					sum += gauss;
+					sum += gauss*g;
 					//multiply color with influence from gaussian function and add it to sum color
-					col += tex2D(_MainTex, uv) * gauss;
+					col += tex2D(_MainTex, uv) * gauss*g;
 				#endif
 				}
 				//divide the sum of values by the amount of samples
@@ -113,6 +133,8 @@ Shader "Effects/GaussianBlur"
 				CGPROGRAM
 				//include useful shader functions
 				#include "UnityCG.cginc"
+				#include "Utils.cginc"
+				#include "NoiseLib.cginc"
 
 				#pragma multi_compile _SAMPLES_LOW _SAMPLES_MEDIUM _SAMPLES_HIGH
 				#pragma shader_feature GAUSS
@@ -122,7 +144,6 @@ Shader "Effects/GaussianBlur"
 				#pragma fragment frag
 
 				//texture and transforms of the texture
-				sampler2D _MainTex;
 				float _BlurSize;
 				float _StandardDeviation;
 
@@ -174,12 +195,31 @@ Shader "Effects/GaussianBlur"
 			#else
 				float sum = SAMPLES;
 			#endif
+
+				float depthCenter;
+			#if UNITY_REVERSED_Z
+				depthCenter = GetDepth(_CameraDepthTexture, i.uv);
+			#else
+				// Adjust z to match NDC for OpenGL
+				depthCenter = lerp(UNITY_NEAR_CLIP_VALUE, 1, GetDepth(_CameraDepthTexture, i.uv));
+			#endif
 				//iterate over blur samples
 				for (float index = 0; index < SAMPLES; index++) {
 					//get the offset of the sample
 					float offset = (index / (SAMPLES - 1) - 0.5) * _BlurSize * invAspect;
 					//get uv coordinate of sample
 					float2 uv = i.uv + float2(offset, 0);
+					float depthKernel;
+				#if UNITY_REVERSED_Z
+					depthKernel = GetDepth(_CameraDepthTexture, uv);
+				#else
+					// Adjust z to match NDC for OpenGL
+					depthKernel = lerp(UNITY_NEAR_CLIP_VALUE, 1, GetDepth(_CameraDepthTexture, uv));
+				#endif
+					//weight calculation depending on distance and depth difference
+					float depthDiff = abs(depthKernel - depthCenter);
+					float r2 = depthDiff * _DepthBlurFalloff;
+					float g = exp(-r2 * r2);
 				#if !GAUSS
 					//simply add the color if we don't have a gaussian blur (box)
 					col += tex2D(_MainTex, uv);
@@ -188,9 +228,9 @@ Shader "Effects/GaussianBlur"
 					float stDevSquared = _StandardDeviation * _StandardDeviation;
 					float gauss = (1 / sqrt(2 * PI * stDevSquared)) * pow(E, -((offset * offset) / (2 * stDevSquared)));
 					//add result to sum
-					sum += gauss;
+					sum += gauss*g;
 					//multiply color with influence from gaussian function and add it to sum color
-					col += tex2D(_MainTex, uv) * gauss;
+					col += tex2D(_MainTex, uv) * gauss*g;
 				#endif
 				}
 				//divide the sum of values by the amount of samples
