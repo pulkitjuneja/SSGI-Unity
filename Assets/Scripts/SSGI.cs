@@ -21,6 +21,8 @@ public class SSGI : MonoBehaviour
     public bool rayReuse = true;
     [Range(0.0f, 1.0f)] public float edgeFade = 0.125f;
     public bool useIndirect = true;
+    public bool usePrevFrame = true;
+
 
     [Header("temporal")]
     public bool useTemporal = true;
@@ -48,6 +50,7 @@ public class SSGI : MonoBehaviour
     RenderTexture prevFrameBuffer;
     RenderTexture prevFrameDiffuseBuffer;
     RenderTexture currentFrameBuffer;
+    RenderTexture previousFrameFinalColor;
     Material SSGIMaterial;
     Material gaussianBlur;
     Vector2 jitter;
@@ -88,6 +91,13 @@ public class SSGI : MonoBehaviour
             prevFrameDiffuseBuffer.Release();
             prevFrameDiffuseBuffer = null;
         }
+
+
+        if (previousFrameFinalColor != null)
+        {
+            previousFrameFinalColor.Release();
+            previousFrameFinalColor = null;
+        }
     }
 
     private void ReleaseTempBuffer(RenderTexture rt) {
@@ -107,6 +117,12 @@ public class SSGI : MonoBehaviour
         if (prevFrameDiffuseBuffer == null || !prevFrameDiffuseBuffer.IsCreated())
         {
             prevFrameDiffuseBuffer = CreateRenderTexture(width, height, 0, RenderTextureFormat.ARGBFloat, false, false, FilterMode.Bilinear);
+
+        }
+
+        if (previousFrameFinalColor == null || !previousFrameFinalColor.IsCreated())
+        {
+            previousFrameFinalColor = CreateRenderTexture(width, height, 0, RenderTextureFormat.ARGBFloat, false, false, FilterMode.Bilinear);
 
         }
 
@@ -319,13 +335,21 @@ public class SSGI : MonoBehaviour
             ReleaseTempBuffer(temporalBuffer0);
         }
 
-
+        if(frameCount==0)
+        {
+            Graphics.Blit(source, previousFrameFinalColor);
+        }
 
         RenderTexture customNormals = CreateTempBuffer(width, height, 0, RenderTextureFormat.ARGBFloat);
         Graphics.Blit(source, customNormals, SSGIMaterial, 5);
 
         RenderTexture diffuseIndirectBuffer = CreateTempBuffer(width, height, 0, RenderTextureFormat.ARGBFloat);
-        SSGIMaterial.SetTexture("_SourceColor", source);
+
+        if(usePrevFrame)
+            SSGIMaterial.SetTexture("_SourceColor", previousFrameFinalColor);
+        else
+            SSGIMaterial.SetTexture("_SourceColor", source);
+
         Graphics.Blit(customNormals, diffuseIndirectBuffer, SSGIMaterial, 6);
 
         RenderTexture tempDiffuseBuffer = CreateTempBuffer(width, height, 0, RenderTextureFormat.Default);
@@ -355,6 +379,7 @@ public class SSGI : MonoBehaviour
         SSGIMaterial.SetTexture("_DiffuseReflectionBuffer", tempDiffuseBuffer);
         Graphics.Blit(source, prevFrameBuffer, SSGIMaterial, 4);
         Graphics.Blit(prevFrameBuffer, destination);
+        Graphics.Blit(destination, previousFrameFinalColor);
         ReleaseTempBuffer(customNormals);
         ReleaseTempBuffer(tempDiffuseBuffer);
         ReleaseTempBuffer(diffuseIndirectBuffer);
