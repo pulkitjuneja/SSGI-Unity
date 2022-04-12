@@ -335,10 +335,10 @@ public class SSGI : MonoBehaviour
             ReleaseTempBuffer(temporalBuffer0);
         }
 
-        if(frameCount==0)
-        {
-            Graphics.Blit(source, previousFrameFinalColor);
-        }
+        // if(frameCount==0)
+        // {
+        //     Graphics.Blit(source, previousFrameFinalColor);
+        // }
 
         RenderTexture customNormals = CreateTempBuffer(width, height, 0, RenderTextureFormat.ARGBFloat);
         Graphics.Blit(source, customNormals, SSGIMaterial, 5);

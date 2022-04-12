@@ -235,7 +235,7 @@
 		float3 screenPos = float3(uv.xy * 2 - 1, depth);
 		float3 worldPos = GetWorlPos(screenPos);
 
-		float3 cubemap = GetCubeMap (uv);
+		float4 cubemap = GetCubeMap (uv);
 		float4 worldNormal = GetNormal (uv);
 
 		float4 diffuse =  tex2D(_CameraGBufferTexture0, uv);
@@ -244,7 +244,7 @@
 		float roughness = GetRoughness(specular.a);
 
 		float4 sceneColor = tex2D(_MainTex,  uv);
-		//sceneColor.rgb = max(1e-5, sceneColor.rgb - cubemap.rgb);
+		sceneColor.rgb = max(1e-5, sceneColor.rgb - cubemap.rgb);
 
 		float4 reflection = tex2D(_ReflectionBuffer, uv);
 		float4 diffuseIndirectColor = tex2D(_DiffuseReflectionBuffer, uv);
@@ -261,20 +261,17 @@
 		
         UnityIndirect ind;
         ind.diffuse = 0;
-        ind.specular = 0;
-		
+        ind.specular = reflection;
 
-		//reflection.rgb = oneMinusReflectivity*diffuseIndirectColor;
-		//reflection.rgb += sceneColor;
-
-		//reflection.rgb = UNITY_BRDF_PBS (diffuse.rgb, specular.rgb, oneMinusReflectivity, 1-roughness, worldNormal, -viewDir, light, ind).rgb;
-		//reflection.rgb *= occlusion;
+		reflection.rgb = UNITY_BRDF_PBS (diffuse.rgb, specular.rgb, oneMinusReflectivity, 1-roughness, worldNormal, -viewDir, light, ind).rgb;
+		reflection.rgb *= occlusion;
 		
 		diffuseIndirectColor.rgb *= diffuse.rgb;
 
 		if (_EnableIndirectLighting)
 		{
 			//diffuseIndirectColor.rgb = EnergyConservationBetweenDiffuseAndSpecular(diffuseIndirectColor.rgb, reflection.rgb, oneMinusReflectivity);
+			sceneColor += lerp(cubemap, reflection, mask);
 			sceneColor.rgb += diffuseIndirectColor.rgb;// +reflection.rgb;
 		}
 
