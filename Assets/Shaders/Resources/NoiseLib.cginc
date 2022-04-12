@@ -43,6 +43,13 @@ float InterleavedGradientNoise (float2 pos, float2 random)
 	return frac(magic.z * frac(dot(pos.xy + random, magic.xy)));
 }
 
+float IGN(int pixelX, int pixelY, int frame)
+{
+	frame = frame % 64; // need to periodically reset frame to avoid numerical issues
+	float x = float(pixelX) + 5.588238f * float(frame);
+	float y = float(pixelY) + 5.588238f * float(frame);
+	return fmod(52.9829189f * fmod(0.06711056f * float(x) + 0.00583715f * float(y), 1.0f), 1.0f);
+}
 
 // https://www.shadertoy.com/view/4sBSDW
 float Step1(float2 uv,float n)
