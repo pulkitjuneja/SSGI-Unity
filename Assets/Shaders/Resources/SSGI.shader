@@ -293,7 +293,7 @@
 		float noise = IGN(pos.x,pos.y, _FrameCount);
 		float noise1 = IGN(pos.x,pos.y, _FrameCount+1);
 		float2 blueNoise = tex2D(_Noise, (uv+_JitterSizeAndOffset.zw)*_ScreenSize.xy / _NoiseSize.xy) * 2.0 - 1.0;
-		float3 stochasticNormal = GetCosHemisphereSample(noise, noise1, worldNormal);
+		float3 stochasticNormal = GetCosHemisphereSample(noise, noise, worldNormal);
 
 		return normalize(float4(stochasticNormal,1));
 	}
