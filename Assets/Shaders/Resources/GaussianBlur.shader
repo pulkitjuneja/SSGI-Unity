@@ -84,6 +84,7 @@ Shader "Effects/GaussianBlur"
 				float sum = SAMPLES;
 			#endif
 				float depthCenter;
+				float3 centerNormal = GetNormal(i.uv);
 			#if UNITY_REVERSED_Z
 				depthCenter = GetDepth(_CameraDepthTexture, i.uv);
 			#else
@@ -97,6 +98,7 @@ Shader "Effects/GaussianBlur"
 					//get uv coordinate of sample
 					float2 uv = i.uv + float2(0, offset);
 					float depthKernel;
+					float3 currentNormal = GetNormal(uv);
 				#if UNITY_REVERSED_Z
 					depthKernel = GetDepth(_CameraDepthTexture, uv);
 				#else
@@ -114,6 +116,9 @@ Shader "Effects/GaussianBlur"
 					//calculate the result of the gaussian function
 					float stDevSquared = _StandardDeviation * _StandardDeviation;
 					float gauss = (1 / sqrt(2 * PI * stDevSquared)) * pow(E, -((offset * offset) / (2 * stDevSquared)));
+
+					if(dot(currentNormal, centerNormal)<NORMAL_THRESHOLD)
+						g = 0;
 					//add result to sum
 					sum += gauss*g;
 					//multiply color with influence from gaussian function and add it to sum color
@@ -197,6 +202,7 @@ Shader "Effects/GaussianBlur"
 			#endif
 
 				float depthCenter;
+				float3 centerNormal = GetNormal(i.uv);
 			#if UNITY_REVERSED_Z
 				depthCenter = GetDepth(_CameraDepthTexture, i.uv);
 			#else
@@ -210,6 +216,7 @@ Shader "Effects/GaussianBlur"
 					//get uv coordinate of sample
 					float2 uv = i.uv + float2(offset, 0);
 					float depthKernel;
+					float3 currentNormal = GetNormal(uv);
 				#if UNITY_REVERSED_Z
 					depthKernel = GetDepth(_CameraDepthTexture, uv);
 				#else
@@ -227,6 +234,9 @@ Shader "Effects/GaussianBlur"
 					//calculate the result of the gaussian function
 					float stDevSquared = _StandardDeviation * _StandardDeviation;
 					float gauss = (1 / sqrt(2 * PI * stDevSquared)) * pow(E, -((offset * offset) / (2 * stDevSquared)));
+
+					if(dot(currentNormal, centerNormal)<NORMAL_THRESHOLD)
+						g = 0;
 					//add result to sum
 					sum += gauss*g;
 					//multiply color with influence from gaussian function and add it to sum color

@@ -2,6 +2,8 @@
 
 #define PI 3.141592
 
+#define NORMAL_THRESHOLD 0.2
+
 uniform sampler2D	_MainTex,
 					_ReflectionBuffer,
 					_DiffuseReflectionBuffer,
