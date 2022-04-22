@@ -305,7 +305,11 @@ public class SSGI : MonoBehaviour
         SSGIMaterial.SetTexture("_RayCastMask", rayCastMask);
 
         // initial reprojection, not sure why this is needed. looks same without it
-        Graphics.Blit(prevFrameBuffer, currentFrameBuffer, SSGIMaterial, 0);
+        if(usePrevFrame) {
+            Graphics.Blit(prevFrameBuffer, currentFrameBuffer, SSGIMaterial, 0);
+        } else {
+            Graphics.Blit(source, currentFrameBuffer, SSGIMaterial, 0);
+        }
 
         RenderBuffer[] renderBuffer = new RenderBuffer[2];
         renderBuffer[0] = rayCast.colorBuffer;
@@ -334,11 +338,6 @@ public class SSGI : MonoBehaviour
             SSGIMaterial.SetTexture("_ReflectionBuffer", temporalReflectionBuffer);
             ReleaseTempBuffer(temporalBuffer0);
         }
-
-        // if(frameCount==0)
-        // {
-        //     Graphics.Blit(source, previousFrameFinalColor);
-        // }
 
         RenderTexture customNormals = CreateTempBuffer(width, height, 0, RenderTextureFormat.ARGBFloat);
         Graphics.Blit(source, customNormals, SSGIMaterial, 5);
